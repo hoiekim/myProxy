@@ -18,21 +18,26 @@ const readFile = async (path: string) => {
 }
 
 const SNICallback = async (host, cb) => {
-  // TLD -> Top-Level Domain | SLD -> Second-Level Domain
-  const [TLD, SLD, ...subDomains] = host.split('.').reverse()
-  const domain = `${SLD}.${TLD}`
-  const wildstar = subDomains.length > 0 ? '*.' : ''
-  const key = `${acmePath}${wildstar}${domain}`
-  const keyPath = `${acmePath}/${wildstar}${domain}/${wildstar}${domain}\.key`
-  const certPath = `${acmePath}/${wildstar}${domain}/fullchain.cer`
-  if (!keyCache[key]) keyCache[key] = await readFile(keyPath)
-  if (!certCache[key]) certCache[key] = await readFile(certPath)
-  const secureContext = tls.createSecureContext({
-    key: keyCache[key],
-    cert: certCache[key]
-  })
-  if (cb) return cb(null, secureContext)
-  return secureContext
+  try {
+    // TLD -> Top-Level Domain | SLD -> Second-Level Domain
+    const [TLD, SLD, ...subDomains] = host.split('.').reverse()
+    const domain = `${SLD}.${TLD}`
+    const wildstar = subDomains.length > 0 ? '*.' : ''
+    const key = `${acmePath}${wildstar}${domain}`
+    const keyPath = `${acmePath}/${wildstar}${domain}/${wildstar}${domain}\.key`
+    const certPath = `${acmePath}/${wildstar}${domain}/fullchain.cer`
+    if (!keyCache[key]) keyCache[key] = await readFile(keyPath)
+    if (!certCache[key]) certCache[key] = await readFile(certPath)
+    const secureContext = tls.createSecureContext({
+      key: keyCache[key],
+      cert: certCache[key]
+    })
+    if (cb) return cb(null, secureContext)
+    return secureContext
+  } catch (err) {
+    console.error('Error: SNICallback failed', err)
+    return cb && cb()
+  }
 }
 
 export { SNICallback }
